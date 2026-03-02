@@ -54,8 +54,10 @@ async function handleQuery(event: FetchEvent, sw: ServiceWorkerGlobalScope) {
   const body = (await event.request.json()) as DBExecBody;
   try {
     await ensurePortIsReady(sw);
-    const result = await sendToWorker({ type: "QUERY", ...body });
-    return new Response(JSON.stringify(result));
+    return await navigator.locks.request("db-lock", async () => {
+      const result = await sendToWorker({ type: "QUERY", ...body });
+      return new Response(JSON.stringify(result));
+    });
   } catch (err) {
     const error = err as Error;
     console.error("SW query error:", error.message);
