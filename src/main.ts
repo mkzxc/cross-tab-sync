@@ -1,4 +1,5 @@
 import { setupButtons } from "./buttons";
+import { setupReact } from "./react";
 import type { HasWorkerResponse, SWToTabMessage } from "./sw/sw-types";
 
 //Keep reference to active dedicated worker
@@ -110,6 +111,7 @@ async function setup() {
 function init() {
   setup().then(() => {
     setupButtons();
+    setupReact();
   });
 }
 
