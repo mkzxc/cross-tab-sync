@@ -1,6 +1,6 @@
 const LOCKS = {
-  workerCreate: "worker-create-lock",
-  dbOperation: "db-lock",
+  createDW: "create-dw-lock",
+  customOperation: "custom-operation-lock",
 } as const;
 
 export { LOCKS };

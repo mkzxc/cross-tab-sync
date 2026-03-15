@@ -12,7 +12,15 @@ const useGetMessages = () => {
   });
 
   return {
-    messages: data.data.rows as {
+    //NOT DEMO
+    // messages: data.data.rows as {
+    //   id: number;
+    //   content: string;
+    //   created_at: number;
+    // }[],
+
+    //DEMO
+    messages: data.data as {
       id: number;
       content: string;
       created_at: number;

@@ -1,11 +1,15 @@
-import type { HasWorkerResponse, SWToTabMessage } from "../sw/sw-types";
 import { LOCKS } from "./const";
+import type { Provider } from "./provider";
+import type { SWToTabMessage } from "./types";
 
 class Tab {
   //This can't be shared across instances since only one tab must have this set different to null
   #currentDW: Worker | null = null;
+  #Provider;
 
-  constructor() {}
+  constructor(provider: Provider) {
+    this.#Provider = provider;
+  }
 
   private getActiveSW = async () => {
     try {
@@ -18,11 +22,6 @@ class Tab {
     }
   };
 
-  /**
-   * Send SW port to DW
-   * Send DW port to SW
-   * Resolve the promise upon receiving PORT_READY from the SW
-   */
   private sendPortToSW = async (DW: Worker) => {
     const reg = await this.getActiveSW();
     const { port1, port2 } = new MessageChannel();
@@ -37,27 +36,35 @@ class Tab {
       };
 
       navigator.serviceWorker.addEventListener("message", listener);
-      reg.postMessage({ type: "WORKER_PORT", port: port2 }, [port2]);
+      reg.postMessage({ type: "WORKER_PORT", payload: port2 }, [port2]);
     });
   };
 
   private doesSWHaveDW = async (SW: ServiceWorker) => {
-    return await new Promise<boolean>((resolve) => {
+    return await new Promise<boolean>((resolve, reject) => {
       const { port1, port2 } = new MessageChannel();
-      port1.onmessage = (e: MessageEvent<HasWorkerResponse>) =>
-        resolve(e.data.hasWorker);
+      port1.onmessage = (e: MessageEvent<SWToTabMessage>) => {
+        if (e.data.type !== "HAS_WORKER_RESPONSE") {
+          reject(
+            `Unexpected message, should be: HAS_WORKER_RESPONSE instead of ${e.data.type}`,
+          );
+          return;
+        }
+        resolve(e.data.payload);
+      };
       SW.postMessage({ type: "HAS_WORKER_REQUEST" }, [port2]);
     });
   };
 
   private createDW = async () => {
-    await navigator.locks.request(LOCKS.workerCreate, async () => {
+    await navigator.locks.request(LOCKS.createDW, async () => {
       const reg = await this.getActiveSW();
 
       const hasDW = await this.doesSWHaveDW(reg);
       if (hasDW) return;
 
-      const DW = new Worker(new URL("./db.worker.ts", import.meta.url), {
+      //TODO Worker url should be a responsability of who instances this class
+      const DW = new Worker(new URL("./demo/db.worker.ts", import.meta.url), {
         type: "module",
       });
 
@@ -72,20 +79,34 @@ class Tab {
     });
   };
 
-  private setup = async () => {
+  setup = async () => {
     navigator.serviceWorker.addEventListener(
       "message",
       async (event: MessageEvent<SWToTabMessage>) => {
         console.log("SW message:", event.data);
 
-        /**
-         * This should be changed to an agnostic name that represents that the action
-         * desired from the user of the library was successful
-         */
-        if (event.data.type === "DB_UPDATED") {
-          //   queryClient.invalidateQueries({
-          //     queryKey: [QUERY_KEYS.messages],
-          //   });
+        if (event.data.type === "OP_SUCCESS") {
+          //TODO Testing purposes
+          if (
+            typeof event.data.payload === "object" &&
+            event.data.payload &&
+            "key" in event.data.payload &&
+            typeof event.data.payload.key === "string"
+          ) {
+            const linkedConfig = this.#Provider.getConfig(
+              event.data.payload.key,
+            );
+            if (!linkedConfig) {
+              console.error("Can't get linked config in tab handler");
+            } else {
+              if (
+                "result" in event.data.payload &&
+                typeof event.data.payload === "object"
+              ) {
+                linkedConfig.onSuccess(event.data.payload.result);
+              }
+            }
+          }
         }
 
         if (event.data.type === "CREATE_WORKER") {
