@@ -1,6 +1,6 @@
-interface Action<T, K, Z = never> {
+interface Action<T, K, Z> {
   key: T;
-  payload?: K;
+  fetchFn: (payload: K) => Z;
   onSuccess?: (data: Z) => void;
   onError?: (error: Error) => void;
 }

@@ -10,11 +10,6 @@ import { CONFIGS_KEY } from "./const";
 const getMessage = CONFIGS_KEY["getMessage"];
 const postMessage = CONFIGS_KEY["postMessage"];
 
-type Config = {
-  [getMessage]: { payload: DBExecBody; result: ApiModel };
-  [postMessage]: { payload: DBExecBody };
-};
-
 type DBExecBody = {
   sql: string;
   bind?: BindingSpec;
@@ -26,17 +21,25 @@ type ApiModel = {
   value: string;
 };
 
+type Config = {
+  [getMessage]: (payload: DBExecBody) => ApiModel;
+  [postMessage]: (payload: DBExecBody) => void;
+};
+
 const actionsAdapter = new ActionsAdapter<Config>([
   {
-    key: CONFIGS_KEY.getMessage,
-    // fetcher: getMessages,
-    onSuccess: () => {},
+    key: "GET_MESSAGES",
+    fetchFn: (_payload) => {
+      return { date: 1, id: "a", value: "abc" };
+    },
+    onSuccess: (_data) => {},
     onError: (error) =>
       console.error("Error printed by config linked with get cb", error),
   },
   {
     key: CONFIGS_KEY.postMessage,
     // fetcher: postMessage,
+    fetchFn: (_payload) => {},
     onSuccess: () =>
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.messages],

@@ -1,9 +1,9 @@
-import type { ActionsAdapter } from "./adapters/ActionsAdapter";
+import type { ActionData, ActionsAdapter } from "./adapters/ActionsAdapter";
 import { LOCKS } from "./const";
 import type { SWToTabMessage } from "./types";
 
 //I don't like this generic here, probably it's acceptable to use unknown here
-class Tab<T> {
+class Tab<T extends ActionData> {
   //This can't be shared across instances since only one tab must have this set different to null
   #currentDW: Worker | null = null;
   #ActionsAdapter;
