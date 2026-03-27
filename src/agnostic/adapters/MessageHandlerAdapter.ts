@@ -1,14 +1,25 @@
+import type { ActionData } from "./types";
+
+type HandlerData<T, K> = {
+  key: T;
+  data: K;
+};
+
+type HandlerPayload<T extends ActionData> = {
+  [K in Extract<keyof T, string>]: HandlerData<K, Parameters<T[K]>[0]>;
+}[Extract<keyof T, string>];
+
 /**
  * Shapes user data handler so that it fits into library architecture
  */
-class MessageHandlerAdapter<T> {
+class MessageHandlerAdapter<T extends ActionData> {
   #initializerDW: () => void;
   #port: MessagePort | null = null;
 
   /**
    * @param handler This callback should handle all the possible sent message that are differentiated by the key
    */
-  constructor(handler: (payload: T) => unknown) {
+  constructor(handler: (payload: HandlerPayload<T>) => unknown) {
     this.#initializerDW = () => {
       self.postMessage({ type: "READY" });
       self.addEventListener("message", (event) => {

@@ -1,4 +1,5 @@
-import type { ActionData, ActionsAdapter } from "./adapters/ActionsAdapter";
+import type { ActionsAdapter } from "./adapters/ActionsAdapter";
+import type { ActionData } from "./adapters/types";
 import { LOCKS } from "./const";
 import type { SWToTabMessage } from "./types";
 

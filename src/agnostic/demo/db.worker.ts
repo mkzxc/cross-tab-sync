@@ -1,4 +1,5 @@
 import sqlite3InitModule, {
+  type BindingSpec,
   type OpfsSAHPoolDatabase,
 } from "@sqlite.org/sqlite-wasm";
 import { CONFIGS_KEY } from "./const";
@@ -35,21 +36,37 @@ async function initDB() {
   console.log("DW: Initialized DB");
 }
 
-// I will get the key from the custom header
-//TODO Generic
-function handleMessage<
-  T extends { key: (typeof CONFIGS_KEY)[keyof typeof CONFIGS_KEY] },
->(payload: T) {
+//TODO Handle everything that is shared between JS realms in the best way memory-wise
+type DBExecBody = {
+  sql: string;
+  bind?: BindingSpec;
+};
+
+type ApiModel = {
+  id: string;
+  date: number;
+  value: string;
+};
+
+const getMessage = CONFIGS_KEY["getMessage"];
+const postMessage = CONFIGS_KEY["postMessage"];
+
+type Config = {
+  [getMessage]: (payload: DBExecBody) => ApiModel;
+  [postMessage]: (payload: DBExecBody) => void;
+};
+
+const adapter = new MessageHandlerAdapter<Config>((payload) => {
   try {
     if (!db) {
       //Should never happen
       throw new Error("DW: DB not initialized");
     }
+
     if (payload.key === CONFIGS_KEY.postMessage) {
       db.exec("BEGIN TRANSACTION");
       try {
-        //@ts-expect-error Look above
-        db.exec({ sql: payload.sql, bind: payload.bind ?? [] });
+        db.exec({ sql: payload.data.sql, bind: payload.data.bind ?? [] });
         db.exec("COMMIT");
       } catch (err) {
         db.exec("ROLLBACK");
@@ -58,10 +75,8 @@ function handleMessage<
     } else if (payload.key === CONFIGS_KEY.getMessage) {
       const rows: unknown[] = [];
       db.exec({
-        //@ts-expect-error Look above
-        sql: payload.sql,
-        //@ts-expect-error Look above
-        bind: payload.bind ?? [],
+        sql: payload.data.sql,
+        bind: payload.data.bind ?? [],
         rowMode: "object",
         callback: (row) => {
           rows.push(row);
@@ -75,12 +90,7 @@ function handleMessage<
     }
     throw new Error(`Error in handleMessage ${JSON.stringify(err)}`);
   }
-}
-
-//TODO Look above
-const adapter = new MessageHandlerAdapter<{
-  key: (typeof CONFIGS_KEY)[keyof typeof CONFIGS_KEY];
-}>(handleMessage);
+});
 
 initDB().then(() => {
   const init = adapter.getInitializerDW();
