@@ -10,7 +10,7 @@ function dedicatedWorkerPlugin(): Plugin {
 
   async function buildWorker() {
     await build({
-      entryPoints: ["src/db.worker.ts"],
+      entryPoints: ["src/demo/db.worker.ts"],
       bundle: true,
       outfile: "dist/db.worker.js",
       format: "esm",
@@ -33,7 +33,7 @@ function dedicatedWorkerPlugin(): Plugin {
     },
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        if (req.url === "/src/db.worker.ts?worker_file&type=module") {
+        if (req.url === "/src/demo/db.worker.ts?worker_file&type=module") {
           if (!workerContent) {
             next();
             return;
@@ -69,111 +69,7 @@ function serviceWorkerPlugin(): Plugin {
 
   async function buildSW() {
     await build({
-      entryPoints: ["src/sw/sw.ts"],
-      bundle: true,
-      outfile: "public/sw.js",
-      format: "esm",
-      platform: "browser",
-    });
-    swContent = readFileSync(resolve("public/sw.js"));
-    console.log("SW Bundled");
-  }
-  return {
-    name: "service-worker-plugin",
-    async buildStart() {
-      await buildSW();
-    },
-    async handleHotUpdate({ file }: { file: string }) {
-      if (file.includes("/sw/")) {
-        await buildSW();
-      }
-    },
-    configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        if (req.url === "/sw.js") {
-          if (!swContent) {
-            next();
-            return;
-          }
-          res.setHeader("Content-Type", "application/javascript");
-          res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-          res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-          res.end(swContent);
-          return;
-        }
-        next();
-      });
-    },
-  };
-}
-
-function demoDedicatedWorkerPlugin(): Plugin {
-  let workerContent: Buffer | null = null;
-
-  async function buildWorker() {
-    await build({
-      entryPoints: ["src/agnostic/demo/db.worker.ts"],
-      bundle: true,
-      outfile: "dist/db.worker.js",
-      format: "esm",
-      platform: "browser",
-      tsconfig: "./tsconfig.json",
-    });
-    workerContent = readFileSync(resolve("dist/db.worker.js"));
-    console.log("DW Bundled");
-  }
-
-  return {
-    name: "db-worker-plugin",
-    async buildStart() {
-      await buildWorker();
-    },
-    async handleHotUpdate({ file }: { file: string }) {
-      if (file.includes("db.worker.ts")) {
-        await buildWorker();
-      }
-    },
-    configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        if (
-          req.url === "/src/agnostic/demo/db.worker.ts?worker_file&type=module"
-        ) {
-          if (!workerContent) {
-            next();
-            return;
-          }
-          res.setHeader("Content-Type", "application/javascript");
-          res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-          res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-          res.end(workerContent);
-          return;
-        }
-        // Serve sqlite proxy from /src/ since that's where the worker thinks it is
-        if (req.url === "/src/agnostic/demo/sqlite3-opfs-async-proxy.js") {
-          res.setHeader("Content-Type", "application/javascript");
-          res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-          res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-          res.end(
-            readFileSync(
-              resolve(
-                "node_modules/@sqlite.org/sqlite-wasm/dist/sqlite3-opfs-async-proxy.js",
-              ),
-            ),
-          );
-          return;
-        }
-        next();
-      });
-    },
-  };
-}
-
-function demoServiceWorkerPlugin(): Plugin {
-  let swContent: Buffer | null = null;
-
-  async function buildSW() {
-    await build({
-      entryPoints: ["src/agnostic/demo/sw.ts"],
+      entryPoints: ["src/demo/sw.ts"],
       bundle: true,
       outfile: "public/sw.js",
       format: "esm",
@@ -213,10 +109,8 @@ function demoServiceWorkerPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [
-    // dedicatedWorkerPlugin(),
-    // serviceWorkerPlugin(),
-    demoDedicatedWorkerPlugin(),
-    demoServiceWorkerPlugin(),
+    dedicatedWorkerPlugin(),
+    serviceWorkerPlugin(),
     viteStaticCopy({
       targets: [
         {

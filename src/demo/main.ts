@@ -1,10 +1,10 @@
 import type { BindingSpec } from "@sqlite.org/sqlite-wasm";
-import { setupButtons } from "../../buttons";
-import { setupReact } from "../../react";
-import { QUERY_KEYS } from "../../react/api/queryKeys";
-import { queryClient } from "../../react/core/frameworks/network";
-import { ActionsAdapter } from "../adapters/ActionsAdapter";
-import { Tab } from "../tab";
+import { setupButtons } from "./buttons";
+import { setupReact } from "../react";
+import { QUERY_KEYS } from "../react/api/queryKeys";
+import { queryClient } from "../react/core/frameworks/network";
+import { ActionsAdapter } from "../library/adapters/ActionsAdapter";
+import { Tab } from "../library/tab";
 import { CONFIGS_KEY } from "./const";
 
 const getMessage = CONFIGS_KEY["getMessage"];

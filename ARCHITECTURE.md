@@ -1,42 +1,47 @@
-## ARCHITECTURE
+# Terminology
 
-### Tabs (main.ts)
+Internally, **Worker** is also named _**DW**_ to create symmetry with the **Service Worker** abbreviation.
 
-This file is responsible for bootstrapping the SW and to handle recovery.\
-It holds a reference to the DW, so it pings it to verify that its actually alive.\
-The creation of the DW is handled via a Lock named **worker-create-lock**.\
-It creates a _MessageChannel_, the DW will receive a port via **SW_PORT** while the SW will receive the DW port via **WORKER_PORT**: at that point SW and DW can communicate directly and the tab is not needed.\
-At the end of the setup, sends **TAB_READY** so the SW knows that it can handle a possible recovery (**CREATE_WORKER** and **RESEND_PORT**).
+# ARCHITECTURE
 
-### Dedicated Worker (db.worker.ts)
+_(Notes about refactor)_
+Differentiate lifecycle logic and _fetch_ handling logic to achieve:
 
-Its job is to initialize and interact with the DB.\
-Receives its port via **SW_PORT** and answers to a possible **PING**.
+- primarily an agnostic architecture of the library
+- secondarily a better encapsulation of the logic of the various building blocks and layers to aim for a better separation of responsibility
+- tertiarily (I've never read this term XD) an easier implementation of the library
 
-### Service Worker (src/sw.ts)
+## Tab
 
-Entry point that uses the methods exposed by the managers to intercept every fetch and map them to the related method, listens for the tabs, makes sure of the state of the DW and the related port.
+This file is responsible for bootstrapping the **Service Worker**, the **Worker** and to handle recovery.\
+It holds a reference to the **Worker**, so it pings it to verify that its actually alive.\
+The creation of the **Worker** is handled via a Lock named _create-dw-lock_.\
+It creates a _MessageChannel_, the **Worker** will receive a port via _SW_PORT_ while the **Service Worker** will receive the **Worker** port via _WORKER_PORT_: at that point **Service Worker** and **Worker** can communicate directly and the tab is not needed.\
+At the end of the setup, sends _TAB_READY_ so the **Service Worker** knows that it can handle a possible recovery (_CREATE_WORKER_ and _RESEND_PORT_).
 
-#### Tabs Manager (src/sw-tabs-manager.ts)
+## Service Worker
 
-readyTabs contains the tabs that have completed the bootstrap and that are actually available.\
-Only the first found tab will be the one handling the DW Recovery and will send the appropriate message to the SW.\
-It exposes _notifyAllTabs_ to notify the other tabs via **DB_UPDATED**.
+Intercepts fetches and handles the ones with the _X-Key_ Header to the **Gateway**.
 
-#### DW Manager (src/sw-dw-manager.ts)
+### Services
 
-It manages the state of the DW, which tab owns it and handles the recovery of it.\
-_ensurePortIsReady_ must be called before every request to the DW to make sure of its state.
+Encapsulates logic around a domain problem:
 
-#### DB Manager (src/sw-db-manager.ts)
+- **TabsService** knows about active Tabs and notifies them if something happened
+- **DWService** handles the communication lifecycle with the **Worker** spawned by the elected Tab
 
-Exposes two methods that acquire a Lock named **db-lock** and handle the limited available operations of INSERT and SELECT mapping them to the available _SWToDWMessage_.
+### Gateway
 
-### Concurrency
+Acts as a bridge between the **Service Worker** and the **Worker** for the custom operations via the _custom-operation-lock_ Lock.
 
-There are two possible Locks:
+## Adapters
 
-- **worker-create-lock** makes sure that only one DW is ever created.
-- **db-lock** prevents corruption of DB.
+### MessageHandlerAdapter
 
-As of right now, they are both exclusive: probably a shared lock could be granted in case of reading operations.
+Shapes user data handler so that it fits into library architecture, receives its port via _SW_PORT_ and answers to a possible _PING_.
+Must be used in the **Worker** file to handle the messages from the **Service Worker**.
+
+### ActionsAdapter
+
+Inject custom configs to handle different stages of an operation.\
+The _key_ is essential to differentiate configs for both internal and external use.\

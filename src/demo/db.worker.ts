@@ -3,7 +3,7 @@ import sqlite3InitModule, {
   type OpfsSAHPoolDatabase,
 } from "@sqlite.org/sqlite-wasm";
 import { CONFIGS_KEY } from "./const";
-import { MessageHandlerAdapter } from "../adapters/MessageHandlerAdapter";
+import { MessageHandlerAdapter } from "../library/adapters/MessageHandlerAdapter";
 
 let db: OpfsSAHPoolDatabase | null = null;
 
