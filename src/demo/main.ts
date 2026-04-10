@@ -49,11 +49,12 @@ const actionsAdapter = new ActionsAdapter<Config>([
   },
 ]);
 
-const tab = new Tab(
-  "/sw.js",
-  new URL("./db.worker.ts", import.meta.url),
-  actionsAdapter,
-);
+const id = Math.random() > 0.5 ? "abc" : "def";
+
+const url = new URL("./db.worker.ts", import.meta.url);
+url.searchParams.set("id", id);
+
+const tab = new Tab("/sw.js", url, id, actionsAdapter);
 
 tab.setup().then(() => {
   //IDK do what you need to do

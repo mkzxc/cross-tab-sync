@@ -10,15 +10,18 @@ class Tab<T extends ActionData> {
   #ActionsAdapter;
   #pathSW;
   #pathDW;
+  #idDW;
 
   constructor(
     pathServiceWorker: string | URL,
     pathWorker: string | URL,
+    idWorker: string,
     actionsAdapter: ActionsAdapter<T>,
   ) {
     this.#ActionsAdapter = actionsAdapter;
     this.#pathSW = pathServiceWorker;
     this.#pathDW = pathWorker;
+    this.#idDW = idWorker;
   }
 
   private getActiveSW = async () => {
@@ -52,7 +55,7 @@ class Tab<T extends ActionData> {
     SW.postMessage(message, transferable);
   };
 
-  private sendPortToSW = async (DW: Worker) => {
+  private sendPortToSW = async (DW: Worker, idDW: string) => {
     const reg = await this.getActiveSW();
     const { port1, port2 } = new MessageChannel();
     this.postMessageToDW(DW, { type: "SW_PORT", payload: port1 }, port1);
@@ -66,11 +69,15 @@ class Tab<T extends ActionData> {
       };
 
       navigator.serviceWorker.addEventListener("message", listener);
-      this.postMessageToSW(reg, { type: "WORKER_PORT", payload: port2 }, port2);
+      this.postMessageToSW(
+        reg,
+        { type: "WORKER_PORT", payload: { port: port2, idDW } },
+        port2,
+      );
     });
   };
 
-  private doesSWHaveDW = async (SW: ServiceWorker) => {
+  private doesSWHaveDW = async (SW: ServiceWorker, idDW: string) => {
     return await new Promise<boolean>((resolve, reject) => {
       const { port1, port2 } = new MessageChannel();
       port1.onmessage = (e: MessageEvent<SWToTabMessage>) => {
@@ -82,7 +89,11 @@ class Tab<T extends ActionData> {
         }
         resolve(e.data.payload);
       };
-      this.postMessageToSW(SW, { type: "HAS_WORKER_REQUEST" }, port2);
+      this.postMessageToSW(
+        SW,
+        { type: "HAS_WORKER_REQUEST", payload: idDW },
+        port2,
+      );
     });
   };
 
@@ -90,11 +101,12 @@ class Tab<T extends ActionData> {
     await navigator.locks.request(LOCKS.createDW, async () => {
       const reg = await this.getActiveSW();
 
-      const hasDW = await this.doesSWHaveDW(reg);
+      const hasDW = await this.doesSWHaveDW(reg, this.#idDW);
       if (hasDW) return;
 
       const DW = new Worker(this.#pathDW, {
         type: "module",
+        name: this.#idDW,
       });
 
       await new Promise((resolve) => {
@@ -104,7 +116,7 @@ class Tab<T extends ActionData> {
       });
 
       this.#currentDW = DW;
-      await this.sendPortToSW(DW);
+      await this.sendPortToSW(DW, this.#idDW);
     });
   };
 
@@ -163,7 +175,7 @@ class Tab<T extends ActionData> {
 
         if (event.data.type === "RESEND_PORT") {
           if (this.#currentDW) {
-            await this.sendPortToSW(this.#currentDW);
+            await this.sendPortToSW(this.#currentDW, this.#idDW);
           } else {
             await this.createDW();
           }
@@ -179,13 +191,13 @@ class Tab<T extends ActionData> {
       return;
     }
 
-    const hasDW = await this.doesSWHaveDW(reg);
+    const hasDW = await this.doesSWHaveDW(reg, this.#idDW);
 
     if (!hasDW) {
       await this.createDW();
     }
 
-    this.postMessageToSW(reg, { type: "TAB_READY" });
+    this.postMessageToSW(reg, { type: "TAB_READY", payload: this.#idDW });
   };
 }
 

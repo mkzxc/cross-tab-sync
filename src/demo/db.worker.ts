@@ -1,3 +1,6 @@
+//TODO
+/// <reference lib="webworker" />
+
 import sqlite3InitModule, {
   type BindingSpec,
   type OpfsSAHPoolDatabase,
@@ -17,8 +20,10 @@ async function initDB() {
   });
 
   if ("opfs" in sqlite3) {
-    const poolUtil = await sqlite3.installOpfsSAHPoolVfs({});
-    db = new poolUtil.OpfsSAHPoolDb("/myapp.sqlite3");
+    const poolUtil = await sqlite3.installOpfsSAHPoolVfs({
+      directory: `/cross-tab-without-shared-worker/${self.name}`,
+    });
+    db = new poolUtil.OpfsSAHPoolDb(`/${self.name}.sqlite3`);
   } else {
     console.error("OPFS not available");
     db = new sqlite3.oo1.DB(":memory:");
