@@ -133,6 +133,16 @@ class Tab<T extends ActionData> {
     }
   };
 
+  private onOpError = async (payload: { error: string }) => {
+    const linkedConfig = this.getLinkedConfigByPayload(payload);
+    if (!linkedConfig) {
+      console.error("Can't get linked config, payload:", payload);
+      return;
+    }
+    const error = linkedConfig.onError?.(new Error(payload.error));
+    if (error instanceof Promise) await error;
+  };
+
   setup = async () => {
     navigator.serviceWorker.addEventListener(
       "message",
@@ -141,6 +151,10 @@ class Tab<T extends ActionData> {
 
         if (event.data.type === "OP_SUCCESS") {
           await this.onOpSuccess(event.data.payload);
+        }
+
+        if (event.data.type === "OP_ERROR") {
+          await this.onOpError(event.data.payload);
         }
 
         if (event.data.type === "CREATE_WORKER") {
