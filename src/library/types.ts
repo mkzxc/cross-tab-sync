@@ -7,9 +7,15 @@ import type {
 } from "./const";
 
 type TabToSWMessage =
-  | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[0] }
-  | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[1]; payload: MessagePort }
-  | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[2] }
+  | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[0]; payload: string }
+  | {
+      type: (typeof TAB_TO_SW_MESSAGE_TYPES)[1];
+      payload: {
+        port: MessagePort;
+        idDW: string;
+      };
+    }
+  | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[2]; payload: string }
   | { type: (typeof TAB_TO_SW_MESSAGE_TYPES)[3] };
 
 type SWToTabMessage =
