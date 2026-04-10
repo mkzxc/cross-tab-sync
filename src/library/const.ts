@@ -18,6 +18,7 @@ const SW_TO_TAB_MESSAGE_TYPES = [
   "RESEND_PORT",
   "OP_SUCCESS",
   "HAS_WORKER_RESPONSE",
+  "OP_ERROR",
 ] as const;
 
 const SW_TO_DW_MESSAGE_TYPES = ["PING", "OP"] as const;
