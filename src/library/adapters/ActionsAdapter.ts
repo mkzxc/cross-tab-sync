@@ -1,7 +1,6 @@
 import type { Action } from "../entities/action";
 import type { ActionData } from "./types";
 
-//https://stackoverflow.com/a/68352232
 type ActionsConfig<T extends ActionData> = {
   [K in Extract<keyof T, string>]: Action<
     K,

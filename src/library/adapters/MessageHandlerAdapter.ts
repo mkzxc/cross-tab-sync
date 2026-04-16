@@ -7,6 +7,7 @@ type HandlerData<T, K> = {
   data: K;
 };
 
+//https://stackoverflow.com/a/68352232
 type HandlerPayload<T extends ActionData> = {
   [K in Extract<keyof T, string>]: HandlerData<K, Parameters<T[K]>[0]>;
 }[Extract<keyof T, string>];
