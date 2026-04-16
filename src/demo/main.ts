@@ -56,6 +56,18 @@ url.searchParams.set("id", id);
 
 const tab = new Tab("/sw.js", url, id, actionsAdapter);
 
+tab.subscribe("OP_SUCCESS", (payload) => {
+  if (payload.key === "POST_MESSAGE") {
+    console.log("Trying sub", payload.result);
+  }
+});
+
+tab.subscribe("OP_SUCCESS", (payload) => {
+  if (payload.key === "POST_MESSAGE") {
+    console.log("Another try for sub", payload.result);
+  }
+});
+
 tab.setup().then(() => {
   //IDK do what you need to do
   setupButtons();
