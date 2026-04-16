@@ -77,7 +77,10 @@ class MessageHandlerAdapter<T extends ActionData> {
   /**
    * @param handler This callback should handle all the possible sent message that are differentiated by the key
    */
-  constructor(handler: (payload: HandlerPayload<T>) => unknown) {
+  constructor(
+    handler: (payload: HandlerPayload<T>) => unknown,
+    onTermination?: () => void,
+  ) {
     this.#initializerDW = () => {
       self.postMessage({ type: "READY" });
       self.addEventListener("message", (event) => {
@@ -124,7 +127,7 @@ class MessageHandlerAdapter<T extends ActionData> {
         }
 
         if (event.data.type === "CAN_TERMINATE") {
-          //TODO Insert user callback?
+          onTermination?.();
           event.ports[0].postMessage({ type: "PROCEED_TERMINATION" });
         }
       });
