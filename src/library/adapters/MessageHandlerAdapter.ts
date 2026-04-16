@@ -77,7 +77,10 @@ class MessageHandlerAdapter<T extends ActionData> {
   /**
    * @param handler This callback should handle all the possible sent message that are differentiated by the key
    */
-  constructor(handler: (payload: HandlerPayload<T>) => unknown) {
+  constructor(
+    handler: (payload: HandlerPayload<T>) => unknown,
+    onTermination?: () => void,
+  ) {
     this.#initializerDW = () => {
       self.postMessage({ type: "READY" });
       self.addEventListener("message", (event) => {
@@ -88,37 +91,45 @@ class MessageHandlerAdapter<T extends ActionData> {
           );
           return;
         }
-        this.#port = event.data.payload;
 
-        this.#port.onmessage = (e) => {
-          if (!this.isSWMessage(e.data)) {
-            console.error(
-              `Unsupported message, DW expects SWToDWMessage`,
-              event.data,
-            );
-            return;
-          }
+        if (event.data.type === "SW_PORT") {
+          this.#port = event.data.payload;
 
-          try {
-            this.handleSWMessage(e.data, handler);
-          } catch (error) {
-            if (!this.#port) {
-              //Should never happen
-              throw new Error("DW: MessagePort not available");
+          this.#port.onmessage = (e) => {
+            if (!this.isSWMessage(e.data)) {
+              console.error(
+                `Unsupported message, DW expects SWToDWMessage`,
+                event.data,
+              );
+              return;
             }
 
-            //TODO Advise user to throw Error object in all error cases
-            let externalError = new Error("Unknown error");
-            if (error instanceof Error) {
-              externalError = error;
-            }
+            try {
+              this.handleSWMessage(e.data, handler);
+            } catch (error) {
+              if (!this.#port) {
+                //Should never happen
+                throw new Error("DW: MessagePort not available");
+              }
 
-            this.postMessageToSW({
-              type: "FAILURE",
-              error: externalError.message,
-            });
-          }
-        };
+              //TODO Advise user to throw Error object in all error cases
+              let externalError = new Error("Unknown error");
+              if (error instanceof Error) {
+                externalError = error;
+              }
+
+              this.postMessageToSW({
+                type: "FAILURE",
+                error: externalError.message,
+              });
+            }
+          };
+        }
+
+        if (event.data.type === "CAN_TERMINATE") {
+          onTermination?.();
+          event.ports[0].postMessage({ type: "PROCEED_TERMINATION" });
+        }
       });
     };
   }
