@@ -6,7 +6,7 @@ import sqlite3InitModule, {
   type OpfsSAHPoolDatabase,
 } from "@sqlite.org/sqlite-wasm";
 import { CONFIGS_KEY } from "./const";
-import { WorkerAdapter } from "../library/adapters/MessageHandlerAdapter";
+import { WorkerAdapter } from "../library/adapters/WorkerAdapter";
 
 let db: OpfsSAHPoolDatabase | null = null;
 
