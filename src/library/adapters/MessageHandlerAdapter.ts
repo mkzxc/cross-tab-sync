@@ -15,7 +15,7 @@ type HandlerPayload<T extends ActionData> = {
 /**
  * Shapes user data handler so that it fits into library architecture
  */
-class MessageHandlerAdapter<T extends ActionData> {
+class WorkerAdapter<T extends ActionData> {
   #initializerDW: () => void;
   #port: MessagePort | null = null;
 
@@ -140,4 +140,4 @@ class MessageHandlerAdapter<T extends ActionData> {
   };
 }
 
-export { MessageHandlerAdapter };
+export { WorkerAdapter };
