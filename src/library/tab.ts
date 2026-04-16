@@ -1,6 +1,7 @@
 import type { ActionsAdapter } from "./adapters/ActionsAdapter";
 import type { ActionData } from "./adapters/types";
 import { LOCKS } from "./const";
+import { EventBus } from "./core/EventBus";
 import type { SWToTabMessage, TabToDWMessage, TabToSWMessage } from "./types";
 
 //I don't like this generic here, probably it's acceptable to use unknown here
@@ -11,6 +12,7 @@ class Tab<T extends ActionData> {
   #pathSW;
   #pathDW;
   #idDW;
+  #eventBus;
 
   constructor(
     pathServiceWorker: string | URL,
@@ -22,6 +24,7 @@ class Tab<T extends ActionData> {
     this.#pathSW = pathServiceWorker;
     this.#pathDW = pathWorker;
     this.#idDW = idWorker;
+    this.#eventBus = new EventBus<T>();
   }
 
   private getActiveSW = async () => {
@@ -155,6 +158,23 @@ class Tab<T extends ActionData> {
     if (error instanceof Promise) await error;
   };
 
+  private publish = (type: "OP_SUCCESS" | "OP_ERROR", payload: unknown) => {
+    if (
+      typeof payload === "object" &&
+      payload &&
+      "key" in payload &&
+      typeof payload.key === "string" &&
+      "result" in payload
+    ) {
+      //@ts-expect-error I have to stay generic here for now, this is linked to TODO in library/types.ts
+      this.#eventBus.publish(type, payload);
+    }
+  };
+
+  subscribe = (...args: Parameters<EventBus<T>["subscribe"]>) => {
+    this.#eventBus.subscribe(...args);
+  };
+
   setup = async () => {
     navigator.serviceWorker.addEventListener(
       "message",
@@ -163,10 +183,12 @@ class Tab<T extends ActionData> {
 
         if (event.data.type === "OP_SUCCESS") {
           await this.onOpSuccess(event.data.payload);
+          this.publish(event.data.type, event.data.payload);
         }
 
         if (event.data.type === "OP_ERROR") {
           await this.onOpError(event.data.payload);
+          this.publish(event.data.type, event.data.payload);
         }
 
         if (event.data.type === "CREATE_WORKER") {
