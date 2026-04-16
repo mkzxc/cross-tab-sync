@@ -5,19 +5,34 @@ import type { SWToTabMessage } from "../types";
 const LIMIT = 25;
 
 const TOPICS = SW_TO_TAB_MESSAGE_TYPES.filter(
-  (type) => type === "OP_ERROR" || type === "OP_SUCCESS",
+  (type) =>
+    type === "OP_ERROR" ||
+    type === "OP_SUCCESS" ||
+    type === "WORKER_TERMINATED",
 );
 
+type BaseTopic = Extract<(typeof TOPICS)[number], "WORKER_TERMINATED">;
 type Topic = (typeof TOPICS)[number];
 
-type SubscriberCallbackPayload<T extends ActionData> = {
-  key: keyof T;
-  result: Extract<SWToTabMessage, { type: Topic }>["payload"];
-};
+type SubscriberCallbackPayload<
+  T extends ActionData,
+  U extends Topic,
+> = U extends BaseTopic
+  ? undefined
+  : {
+      key: keyof T;
+      result: Exclude<
+        Extract<SWToTabMessage, { type: Topic }>,
+        { type: BaseTopic }
+      >["payload"];
+    };
 
-type SubscriberCallback<T extends ActionData> = (
-  payload: SubscriberCallbackPayload<T>,
-) => void;
+type SubscriberCallback<
+  T extends ActionData,
+  U extends Topic,
+> = U extends BaseTopic
+  ? () => void
+  : (payload: SubscriberCallbackPayload<T, U>) => void;
 
 class EventBus<T extends ActionData> {
   #subscribers;
@@ -27,13 +42,13 @@ class EventBus<T extends ActionData> {
     this.#subscribers = new Map<
       Topic,
       {
-        cb: SubscriberCallback<T>;
+        cb: SubscriberCallback<T, Topic>;
       }[]
     >();
-    this.#history = new Map<Topic, SubscriberCallbackPayload<T>[]>();
+    this.#history = new Map<Topic, SubscriberCallbackPayload<T, Topic>[]>();
   }
 
-  subscribe = (topic: Topic, cb: SubscriberCallback<T>) => {
+  subscribe = <U extends Topic>(topic: U, cb: SubscriberCallback<T, U>) => {
     if (!TOPICS.includes(topic)) {
       console.error("Topic not supported:", topic);
       return;
@@ -63,19 +78,30 @@ class EventBus<T extends ActionData> {
     };
   };
 
-  publish = async (topic: Topic, payload: SubscriberCallbackPayload<T>) => {
+  publish = <U extends Topic>(
+    topic: U,
+    ...args: Parameters<SubscriberCallback<T, U>>
+  ) => {
     if (!this.#history.has(topic)) {
       this.#history.set(topic, []);
     }
 
-    this.#history.get(topic)?.push(payload);
+    this.#history.get(topic)?.push(...args);
 
     if ((this.#history.get(topic)?.length || 1) > LIMIT) {
       this.#history.get(topic)?.shift();
     }
 
     if (this.#subscribers.has(topic)) {
-      this.#subscribers.get(topic)?.forEach((sub) => sub.cb(payload));
+      this.#subscribers.get(topic)?.forEach((sub) => {
+        if (topic === "WORKER_TERMINATED") {
+          //@ts-expect-error TS doesn't seem able to infer and discriminate here
+          sub.cb();
+        } else {
+          //@ts-expect-error Look above
+          sub.cb(...args);
+        }
+      });
     }
   };
 }

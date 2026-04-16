@@ -2,7 +2,12 @@ import type { ActionsAdapter } from "./adapters/ActionsAdapter";
 import type { ActionData } from "./adapters/types";
 import { LOCKS } from "./const";
 import { EventBus } from "./core/EventBus";
-import type { SWToTabMessage, TabToDWMessage, TabToSWMessage } from "./types";
+import type {
+  DWToTabMessage,
+  SWToTabMessage,
+  TabToDWMessage,
+  TabToSWMessage,
+} from "./types";
 
 //I don't like this generic here, probably it's acceptable to use unknown here
 class Tab<T extends ActionData> {
@@ -158,21 +163,45 @@ class Tab<T extends ActionData> {
     if (error instanceof Promise) await error;
   };
 
-  private publish = (type: "OP_SUCCESS" | "OP_ERROR", payload: unknown) => {
-    if (
-      typeof payload === "object" &&
-      payload &&
-      "key" in payload &&
-      typeof payload.key === "string" &&
-      "result" in payload
-    ) {
-      //@ts-expect-error I have to stay generic here for now, this is linked to TODO in library/types.ts
-      this.#eventBus.publish(type, payload);
+  private publish: EventBus<T>["publish"] = (topic, ...args) => {
+    if (topic === "WORKER_TERMINATED") {
+      this.#eventBus.publish("WORKER_TERMINATED");
+      return;
     }
+
+    this.#eventBus.publish(topic, ...args);
   };
 
-  subscribe = (...args: Parameters<EventBus<T>["subscribe"]>) => {
-    this.#eventBus.subscribe(...args);
+  subscribe: EventBus<T>["subscribe"] = (...args) => {
+    return this.#eventBus.subscribe(...args);
+  };
+
+  private terminateWorker = async () => {
+    if (!this.#currentDW) {
+      //TODO
+      return;
+    }
+
+    const reg = await this.getActiveSW();
+
+    const { port1, port2 } = new MessageChannel();
+
+    const onMessage = (e: MessageEvent<DWToTabMessage>) => {
+      if (e.data.type === "PROCEED_TERMINATION") {
+        this.#currentDW?.terminate();
+        this.#currentDW = null;
+        port1.onmessage = null;
+        this.postMessageToSW(reg, { type: "ELECTED_TAB_TERMINATED_WORKER" });
+      }
+    };
+    port1.onmessage = onMessage;
+
+    this.postMessageToDW(this.#currentDW, { type: "CAN_TERMINATE" }, port2);
+  };
+
+  closeWorker = async () => {
+    const reg = await this.getActiveSW();
+    this.postMessageToSW(reg, { type: "FIND_TAB_TO_TERMINATE_WORKER" });
   };
 
   setup = async () => {
@@ -181,13 +210,23 @@ class Tab<T extends ActionData> {
       async (event: MessageEvent<SWToTabMessage>) => {
         console.log("SW message:", event.data);
 
+        if (event.data.type === "ELECTED_TAB_SHOULD_TERMINATE_WORKER") {
+          await this.terminateWorker();
+        }
+
+        if (event.data.type === "WORKER_TERMINATED") {
+          this.publish(event.data.type);
+        }
+
         if (event.data.type === "OP_SUCCESS") {
           await this.onOpSuccess(event.data.payload);
+          //@ts-expect-error This is linked to TODO in library/types.ts
           this.publish(event.data.type, event.data.payload);
         }
 
         if (event.data.type === "OP_ERROR") {
           await this.onOpError(event.data.payload);
+          //@ts-expect-error This is linked to TODO in library/types.ts
           this.publish(event.data.type, event.data.payload);
         }
 
