@@ -1,4 +1,4 @@
-import { CUSTOM_HEADER } from "../../../demo/const";
+import { CUSTOM_HEADER } from "../../../const";
 import type { ENDPOINTS } from "../../api/endpoints";
 
 //Barebone implementation of fetcher

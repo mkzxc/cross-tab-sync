@@ -1,8 +1,8 @@
 import type { BindingSpec } from "@sqlite.org/sqlite-wasm";
 import { setupButtons } from "./buttons";
-import { setupReact } from "../react";
-import { QUERY_KEYS } from "../react/api/queryKeys";
-import { queryClient } from "../react/core/frameworks/network";
+import { setupReact } from "./react";
+import { QUERY_KEYS } from "./react/api/queryKeys";
+import { queryClient } from "./react/core/frameworks/network";
 import { Tab } from "../library/tab";
 import { CONFIGS_KEY } from "./const";
 

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FC } from "react";
 import { useGetMessages } from "../presenters/useGetMessages";
 import { usePostMessages } from "../presenters/usePostMessages";
-import { tab } from "../../../demo/main";
+import { tab } from "../../../main";
 
 const Messages: FC = () => {
   const { messages } = useGetMessages();
