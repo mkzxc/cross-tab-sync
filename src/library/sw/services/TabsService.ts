@@ -50,7 +50,7 @@ class TabService {
     });
   };
 
-  notifyAllTabs = async (
+  notifyReadyTabs = async (
     sw: ServiceWorkerGlobalScope,
     data: unknown,
     type: SWToTabMessage["type"],
@@ -59,12 +59,14 @@ class TabService {
       includeUncontrolled: true,
       type: "window",
     });
-    allClients.forEach((client) =>
-      client.postMessage({
-        payload: { ...(data as object) },
-        type: type,
-      }),
-    );
+    allClients
+      .filter((c) => this.#readyTabs.has(c.id))
+      .forEach((client) =>
+        client.postMessage({
+          payload: { ...(data as object) },
+          type: type,
+        }),
+      );
   };
 
   getTabs = () => {

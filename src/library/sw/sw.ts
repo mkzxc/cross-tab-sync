@@ -141,7 +141,7 @@ class SW {
             (event.source as Client).id,
           );
           await linkedDW.dwService.setupClosing(() =>
-            linkedDW.tabsService.notifyAllTabs(
+            linkedDW.tabsService.notifyReadyTabs(
               this.#sw,
               null,
               "ELECTED_TAB_SHOULD_TERMINATE_WORKER",
@@ -163,7 +163,7 @@ class SW {
             (event.source as Client).id,
           );
           linkedDW.dwService.confirmClosing();
-          linkedDW.tabsService.notifyAllTabs(
+          linkedDW.tabsService.notifyReadyTabs(
             this.#sw,
             null,
             "WORKER_TERMINATED",
@@ -209,7 +209,7 @@ class SW {
                 );
               },
               linkedDW.dwService.getPort,
-              linkedDW.tabsService.notifyAllTabs,
+              linkedDW.tabsService.notifyReadyTabs,
             ),
           );
         }

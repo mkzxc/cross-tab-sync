@@ -45,7 +45,7 @@ class Gateway {
     sw: ServiceWorkerGlobalScope,
     ensureDWPort: (sw: ServiceWorkerGlobalScope) => Promise<void>,
     getDWPort: () => MessagePort | null,
-    notifyAllTabs: (
+    notifyTabs: (
       sw: ServiceWorkerGlobalScope,
       data: unknown,
       type: SWToTabMessage["type"],
@@ -63,7 +63,7 @@ class Gateway {
           getDWPort,
         );
         const response = (result as { result: unknown }).result;
-        await notifyAllTabs(
+        await notifyTabs(
           sw,
           {
             result: response,
@@ -75,7 +75,7 @@ class Gateway {
       } catch (err) {
         const error = err as Error;
         console.error("SW operation error:", error.message);
-        await notifyAllTabs(
+        await notifyTabs(
           sw,
           {
             result: error.message,
