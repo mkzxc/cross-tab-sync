@@ -80,14 +80,16 @@ class SW {
     return { id: idDW, worker: linkedDW };
   };
 
-  initializeSW = () => {
-    //We don't want to wait for the existing SW to not have any clients
-    this.#sw.addEventListener("install", () => {
-      this.#sw.skipWaiting();
+  initializeSW = (
+    onInstall?: (sw: ServiceWorkerGlobalScope, event: ExtendableEvent) => void,
+    onActivate?: (sw: ServiceWorkerGlobalScope, event: ExtendableEvent) => void,
+  ) => {
+    this.#sw.addEventListener("install", (event) => {
+      onInstall?.(this.#sw, event);
     });
 
     this.#sw.addEventListener("activate", (event) => {
-      event.waitUntil(this.#sw.clients.claim());
+      onActivate?.(this.#sw, event);
     });
 
     this.#sw.addEventListener("message", async (event) => {
