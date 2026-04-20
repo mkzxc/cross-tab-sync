@@ -1,6 +1,3 @@
-//TODO
-/// <reference lib="webworker" />
-
 import sqlite3InitModule, {
   type OpfsSAHPoolDatabase,
 } from "@sqlite.org/sqlite-wasm";

@@ -1,6 +1,3 @@
-//TODO This should be handled differently: https://stackoverflow.com/questions/56356655/structuring-a-typescript-project-with-workers
-/// <reference lib="webworker" />
-
 import { TAB_TO_SW_MESSAGE_TYPES } from "../const";
 import type { DWToSWMessage, SWToTabMessage, TabToSWMessage } from "../types";
 import { Gateway } from "./gateway";
