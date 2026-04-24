@@ -17,5 +17,7 @@ This project is an attempt to solve these issues by splitting the responsabiliti
 - The SW acts as a controller for the tabs and handles the negotiation thanks to its access to the Lock
 - SW and DW communicate via **MessageChannel**
 
-This project can't be even classified as prototype of a POC, so it surely has architecture problems, bugs and the opposite of state of the art solutions: very bad decisions were taken in order to test something.
-The purpose is to first prove its functionality and then refactor it nicely in a package that can be used in various codebases.
+The project is in alpha phase and its implementation is being tested on this [fork branch](https://github.com/mkzxc/Pillage-First-Ask-Questions-Later/tree/feat/cross-tab-game-worlds-with-package).
+After this, it will be refactored and published as library.
+
+All input is appreciated!
