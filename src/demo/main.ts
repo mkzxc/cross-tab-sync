@@ -1,4 +1,3 @@
-import { setupButtons } from "./buttons";
 import { setupReact } from "./react";
 import { QUERY_KEYS } from "./react/api/queryKeys";
 import { queryClient } from "./react/core/frameworks/network";
@@ -29,7 +28,6 @@ tab.subscribe("OP_SUCCESS", (payload) => {
 
 tab.setup().then(() => {
   //IDK do what you need to do
-  setupButtons();
   setupReact();
 });
 

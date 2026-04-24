@@ -6,7 +6,7 @@ const App: FC = () => {
   return (
     <StrictMode>
       <NetworkProvider>
-        <h1>React</h1>
+        <h1>Demo</h1>
         <Messages />
       </NetworkProvider>
     </StrictMode>
